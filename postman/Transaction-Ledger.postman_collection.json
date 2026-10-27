@@ -1,0 +1,209 @@
+{
+  "info": {
+    "name": "Transaction Ledger API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "accountId", "value": "" },
+    { "key": "otherAccountId", "value": "" },
+    { "key": "lastReference", "value": "" },
+    { "key": "lastTransferReference", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": { "method": "GET", "url": "{{baseUrl}}/health" }
+    },
+    {
+      "name": "Create account",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 201) pm.collectionVariables.set('accountId', pm.response.json().data.id);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Sample account\"\n}"
+        },
+        "url": "{{baseUrl}}/accounts"
+      }
+    },
+    {
+      "name": "Create second account",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 201) pm.collectionVariables.set('otherAccountId', pm.response.json().data.id);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Destination account\"\n}"
+        },
+        "url": "{{baseUrl}}/accounts"
+      }
+    },
+    {
+      "name": "Credit account",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 201) pm.collectionVariables.set('lastReference', pm.response.json().data.reference_id);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"type\": \"credit\",\n  \"amount\": 100,\n  \"description\": \"Opening funds\",\n  \"reference_id\": \"{{$guid}}\"\n}"
+        },
+        "url": "{{baseUrl}}/accounts/{{accountId}}/transactions"
+      }
+    },
+    {
+      "name": "Duplicate credit (expect 409)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"type\": \"credit\",\n  \"amount\": 100,\n  \"reference_id\": \"{{lastReference}}\"\n}" },
+        "url": "{{baseUrl}}/accounts/{{accountId}}/transactions"
+      }
+    },
+    {
+      "name": "Debit account (expect 201)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"type\": \"debit\",\n  \"amount\": 25.50,\n  \"description\": \"Purchase\",\n  \"reference_id\": \"{{$guid}}\"\n}" },
+        "url": "{{baseUrl}}/accounts/{{accountId}}/transactions"
+      }
+    },
+    {
+      "name": "Debit more than balance (expect 422)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"type\": \"debit\",\n  \"amount\": 10000,\n  \"reference_id\": \"{{$guid}}\"\n}" },
+        "url": "{{baseUrl}}/accounts/{{accountId}}/transactions"
+      }
+    },
+    {
+      "name": "Invalid transaction type (expect 400)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"type\": \"refund\",\n  \"amount\": 10,\n  \"reference_id\": \"{{$guid}}\"\n}" },
+        "url": "{{baseUrl}}/accounts/{{accountId}}/transactions"
+      }
+    },
+    {
+      "name": "Invalid amount (expect 400)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"type\": \"credit\",\n  \"amount\": 0,\n  \"reference_id\": \"{{$guid}}\"\n}" },
+        "url": "{{baseUrl}}/accounts/{{accountId}}/transactions"
+      }
+    },
+    {
+      "name": "Credit history filter",
+      "request": { "method": "GET", "url": "{{baseUrl}}/accounts/{{accountId}}/transactions?type=credit&page=1&limit=5" }
+    },
+    {
+      "name": "Debit history filter",
+      "request": { "method": "GET", "url": "{{baseUrl}}/accounts/{{accountId}}/transactions?type=debit&page=1&limit=5" }
+    },
+    {
+      "name": "Invalid pagination (expect 400)",
+      "request": { "method": "GET", "url": "{{baseUrl}}/accounts/{{accountId}}/transactions?page=0&limit=500" }
+    },
+    {
+      "name": "Unknown account (expect 404)",
+      "request": { "method": "GET", "url": "{{baseUrl}}/accounts/00000000-0000-4000-8000-000000000001/balance" }
+    },
+    {
+      "name": "Get balance",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/accounts/{{accountId}}/balance"
+      }
+    },
+    {
+      "name": "History (latest first)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/accounts/{{accountId}}/transactions?page=1&limit=10"
+      }
+    },
+    {
+      "name": "Transfer",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 201) pm.collectionVariables.set('lastTransferReference', pm.response.json().data.reference_id);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"source_account_id\": \"{{accountId}}\",\n  \"destination_account_id\": \"{{otherAccountId}}\",\n  \"amount\": 25,\n  \"reference_id\": \"{{$guid}}\"\n}"
+        },
+        "url": "{{baseUrl}}/transfers"
+      }
+    },
+    {
+      "name": "Transfer with insufficient funds (expect 422)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"source_account_id\": \"{{accountId}}\",\n  \"destination_account_id\": \"{{otherAccountId}}\",\n  \"amount\": 999999,\n  \"reference_id\": \"{{$guid}}\"\n}" },
+        "url": "{{baseUrl}}/transfers"
+      }
+    },
+    {
+      "name": "Duplicate transfer (expect 409)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"source_account_id\": \"{{accountId}}\",\n  \"destination_account_id\": \"{{otherAccountId}}\",\n  \"amount\": 25,\n  \"reference_id\": \"{{lastTransferReference}}\"\n}" },
+        "url": "{{baseUrl}}/transfers"
+      }
+    },
+    {
+      "name": "Transfer to same account (expect 400)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"source_account_id\": \"{{accountId}}\",\n  \"destination_account_id\": \"{{accountId}}\",\n  \"amount\": 1,\n  \"reference_id\": \"{{$guid}}\"\n}" },
+        "url": "{{baseUrl}}/transfers"
+      }
+    }
+  ]
+}

@@ -1,0 +1,201 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Transaction Ledger API",
+    "version": "1.0.0",
+    "description": "Backend-only account ledger with atomic, immutable transactions."
+  },
+  "servers": [{ "url": "http://localhost:3000" }],
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health check",
+        "responses": {
+          "200": { "description": "Service and database are available" }
+        }
+      }
+    },
+    "/accounts": {
+      "post": {
+        "summary": "Create an account",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name": { "type": "string", "maxLength": 100 }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Created with zero balance" },
+          "400": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/accounts/{id}": {
+      "get": {
+        "summary": "Get account",
+        "parameters": [{ "$ref": "#/components/parameters/AccountId" }],
+        "responses": {
+          "200": { "description": "Account" },
+          "404": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/accounts/{id}/balance": {
+      "get": {
+        "summary": "Get account balance",
+        "parameters": [{ "$ref": "#/components/parameters/AccountId" }],
+        "responses": {
+          "200": { "description": "Current balance" },
+          "404": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/accounts/{id}/transactions": {
+      "post": {
+        "summary": "Add a credit or debit",
+        "parameters": [{ "$ref": "#/components/parameters/AccountId" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/TransactionInput" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Created atomically" },
+          "400": { "$ref": "#/components/responses/Error" },
+          "404": { "$ref": "#/components/responses/Error" },
+          "409": { "$ref": "#/components/responses/Error" },
+          "422": { "$ref": "#/components/responses/Error" }
+        }
+      },
+      "get": {
+        "summary": "List transaction history",
+        "parameters": [
+          { "$ref": "#/components/parameters/AccountId" },
+          {
+            "name": "type",
+            "in": "query",
+            "schema": { "type": "string", "enum": ["credit", "debit"] }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 1, "default": 1 }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Latest first, with pagination metadata" },
+          "400": { "$ref": "#/components/responses/Error" },
+          "404": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/transfers": {
+      "post": {
+        "summary": "Transfer money atomically",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "source_account_id",
+                  "destination_account_id",
+                  "amount",
+                  "reference_id"
+                ],
+                "properties": {
+                  "source_account_id": { "type": "string", "format": "uuid" },
+                  "destination_account_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "amount": { "type": "number", "exclusiveMinimum": 0 },
+                  "description": { "type": "string", "maxLength": 500 },
+                  "reference_id": { "type": "string", "maxLength": 150 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Transfer completed" },
+          "400": { "$ref": "#/components/responses/Error" },
+          "404": { "$ref": "#/components/responses/Error" },
+          "422": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "AccountId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string", "format": "uuid" }
+      }
+    },
+    "schemas": {
+      "TransactionInput": {
+        "type": "object",
+        "required": ["type", "amount", "reference_id"],
+        "properties": {
+          "type": { "type": "string", "enum": ["credit", "debit"] },
+          "amount": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "multipleOf": 0.01
+          },
+          "description": { "type": "string", "maxLength": 500 },
+          "reference_id": { "type": "string", "minLength": 1, "maxLength": 150 }
+        },
+        "additionalProperties": false
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": { "type": "string" },
+              "message": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "responses": {
+      "Error": {
+        "description": "Consistent error response",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/Error" }
+          }
+        }
+      }
+    }
+  }
+}
