@@ -59,4 +59,13 @@ History returns `current_page`, `page_size`, `total_records`, `total_pages`, and
 
 ## Tests and code quality
 
-The project is configured for Jest and Supertest (`npm test`) and ESLint/Prettier (`npm run lint`, `npm run format:check`). API integration tests require a disposable PostgreSQL database configured with `DATABASE_URL` and the migrations applied.
+The project is configured for Jest and Supertest (`npm test`) and ESLint/Prettier (`npm run lint`, 
+If you get this warning/error
+
+```
+[warn] postman/Transaction-Ledger.postman_collection.json
+[warn] src/middleware/errors.ts
+[warn] Code style issues found in 2 files. Run Prettier with --write to fix.
+```
+
+run this `npm run format` and then run this `npm run format:check`). API integration tests require a disposable PostgreSQL database configured with `DATABASE_URL` and the migrations applied.
