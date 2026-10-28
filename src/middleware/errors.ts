@@ -17,19 +17,18 @@ export function errorHandler(
   res: Response,
   _next: NextFunction,
 ): void {
+  void _next;
   if (
     error instanceof SyntaxError &&
     'status' in error &&
     error.status === 400
   ) {
-    res
-      .status(400)
-      .json({
-        error: {
-          code: 'INVALID_JSON',
-          message: 'Request body contains invalid JSON',
-        },
-      });
+    res.status(400).json({
+      error: {
+        code: 'INVALID_JSON',
+        message: 'Request body contains invalid JSON',
+      },
+    });
     return;
   }
   if (error instanceof HttpError) {
@@ -42,40 +41,34 @@ export function errorHandler(
     error instanceof Prisma.PrismaClientKnownRequestError &&
     error.code === 'P2002'
   ) {
-    res
-      .status(409)
-      .json({
-        error: {
-          code: 'DUPLICATE_TRANSACTION',
-          message:
-            'A transaction with this reference_id already exists for this account',
-        },
-      });
+    res.status(409).json({
+      error: {
+        code: 'DUPLICATE_TRANSACTION',
+        message:
+          'A transaction with this reference_id already exists for this account',
+      },
+    });
     return;
   }
   if (
     error instanceof Prisma.PrismaClientKnownRequestError &&
     error.code === 'P2025'
   ) {
-    res
-      .status(404)
-      .json({
-        error: {
-          code: 'NOT_FOUND',
-          message: 'Requested resource was not found',
-        },
-      });
+    res.status(404).json({
+      error: {
+        code: 'NOT_FOUND',
+        message: 'Requested resource was not found',
+      },
+    });
     return;
   }
   console.error(error);
-  res
-    .status(500)
-    .json({
-      error: {
-        code: 'INTERNAL_ERROR',
-        message: 'An unexpected error occurred',
-      },
-    });
+  res.status(500).json({
+    error: {
+      code: 'INTERNAL_ERROR',
+      message: 'An unexpected error occurred',
+    },
+  });
 }
 
 export function validate<T>(
